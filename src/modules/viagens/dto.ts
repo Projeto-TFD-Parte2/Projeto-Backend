@@ -22,8 +22,6 @@ export class ParticipanteViagemDto {
 
 export class CreateViagemDto {
   @IsInt() veiculoId: number;
-  @IsInt() motoristaId: number;
-  @IsInt() cidadeOrigemId: number;
   @IsInt() cidadeDestinoId: number;
   @IsDateString() dataSaida: string;
   @IsOptional() @IsDateString() dataEntrada?: string;

@@ -10,6 +10,7 @@ API REST em NestJS + TypeScript + Prisma + PostgreSQL baseada no esquema lógico
 - Validação global com `class-validator` e `ValidationPipe`
 - Swagger em `/docs`
 - Entidade `Pessoa` unificando paciente e acompanhante
+- Relação 1:1 entre o usuário `OPERADOR` e o seu cadastro de motorista
 - Histórico de pessoa/paciente
 - Consulta de viagens por motorista e veículo
 - Alerta de habilitação vencendo
@@ -129,10 +130,10 @@ A API possui duas roles:
 
 Nao exigem token:
 
-| Metodo | Endpoint | Acesso | Descricao |
-| --- | --- | --- | --- |
-| `POST` | `/api/auth/login` | Publico, somente credenciais de `OPERADOR` | Login do aplicativo operacional |
-| `POST` | `/api/auth/admin/login` | Publico, somente credenciais de `ADMIN` | Login exclusivo do site administrativo |
+| Metodo | Endpoint                | Acesso                                     | Descricao                              |
+| ------ | ----------------------- | ------------------------------------------ | -------------------------------------- |
+| `POST` | `/api/auth/login`       | Publico, somente credenciais de `OPERADOR` | Login do aplicativo operacional        |
+| `POST` | `/api/auth/admin/login` | Publico, somente credenciais de `ADMIN`    | Login exclusivo do site administrativo |
 
 O endpoint `/api/auth/admin/login` retorna `401 Unauthorized` quando as
 credenciais pertencem a um usuario que nao possui a role `ADMIN`.
@@ -143,20 +144,22 @@ credenciais pertencem a um usuario que nao possui a role `OPERADOR`.
 
 Exigem o cabecalho `Authorization: Bearer accessToken`:
 
-| Endpoints | `ADMIN` | `OPERADOR` |
-| --- | :---: | :---: |
-| `GET /api/auth/me` | Sim | Sim |
-| `/api/pessoas` | Sim | Sim |
-| `/api/veiculos` | Sim | Sim |
-| `/api/motoristas` | Sim | Sim |
-| `/api/cidades` | Sim | Sim |
-| `/api/viagens` | Sim | Sim |
-| `/api/dashboard` | Sim | Sim |
-| `/api/usuarios` | Sim | Nao |
+| Endpoints                    | `ADMIN` | `OPERADOR` |
+| ---------------------------- | :-----: | :--------: |
+| `GET /api/auth/me`           |   Sim   |    Sim     |
+| `/api/pessoas`               |   Sim   |    Sim     |
+| `/api/veiculos`              |   Sim   |    Sim     |
+| Leitura em `/api/motoristas` |   Sim   |    Sim     |
+| Escrita em `/api/motoristas` |   Sim   |    Não     |
+| `/api/cidades`               |   Sim   |    Sim     |
+| `/api/viagens`               |   Sim   |    Sim     |
+| `/api/dashboard`             |   Sim   |    Sim     |
+| `/api/usuarios`              |   Sim   |    Nao     |
 
-Todos os metodos disponiveis sob cada recurso seguem a mesma permissao indicada
-na tabela. Por exemplo, `POST`, `GET`, `PATCH` e `DELETE` de `/api/viagens`
-podem ser usados por `ADMIN` e `OPERADOR`.
+Nos recursos que possuem permissões diferentes por operação, a tabela indica a
+exceção: somente `ADMIN` altera motoristas; e somente `OPERADOR` cria viagens,
+pois o motorista é definido pelo usuário logado. Consultas e as demais
+operações de `/api/viagens` continuam disponíveis para as duas roles.
 
 Endpoints de usuarios, exclusivos para `ADMIN`:
 
@@ -226,6 +229,7 @@ GET    /api/motoristas
 GET    /api/motoristas/:id
 GET    /api/motoristas/alertas/habilitacoes-vencendo?dias=30
 PATCH  /api/motoristas/:id
+PATCH  /api/motoristas/:id/usuario
 DELETE /api/motoristas/:id
 ```
 
@@ -250,6 +254,37 @@ GET    /api/viagens/veiculo/:veiculoId
 PATCH  /api/viagens/:id
 DELETE /api/viagens/:id
 ```
+
+`POST /api/viagens` é exclusivo do operador. O motorista é identificado pelo
+token do usuário autenticado; portanto, o corpo da requisição não recebe
+`motoristaId`. A cidade de origem é sempre **Marizópolis/PB** e também não é
+enviada no corpo da requisição.
+
+## Cadastro do operador e motorista
+
+Ao criar um usuário `OPERADOR`, envie seus dados de motorista no mesmo
+cadastro. A API cria os dois registros vinculados e mantém o nome sincronizado.
+
+```json
+{
+  "nome": "Maria Motorista",
+  "email": "maria.motorista@exemplo.com",
+  "password": "senha-segura",
+  "role": "OPERADOR",
+  "motorista": {
+    "cpf": "12345678901",
+    "endereco": "Rua A, 100",
+    "renach": "PB1234567",
+    "validadeHabilitacao": "2027-12-31",
+    "tipoHabilitacao": "D",
+    "tipoVinculo": "EFETIVO"
+  }
+}
+```
+
+Para bases que já tinham motoristas sem vínculo, o administrador pode associar
+um registro existente com `PATCH /api/motoristas/:id/usuario` e o corpo
+`{ "usuarioId": 123 }`.
 
 ### Dashboard
 
@@ -277,8 +312,6 @@ a quantidade de veículos distintos utilizados nesse intervalo.
 ```json
 {
   "veiculoId": 1,
-  "motoristaId": 1,
-  "cidadeOrigemId": 1,
   "cidadeDestinoId": 2,
   "dataSaida": "2026-06-20T05:30:00.000Z",
   "dataEntrada": "2026-06-20T21:00:00.000Z",
@@ -301,6 +334,6 @@ a quantidade de veículos distintos utilizados nesse intervalo.
 - `Pessoa`: guarda dados comuns de paciente e acompanhante.
 - `ViagemPessoa`: define se a pessoa participou como `PACIENTE` ou `ACOMPANHANTE`.
 - `Viagem`: concentra motorista, veículo, origem, destino, saída, entrada e participantes.
-- `Motorista`: guarda CNH/RENACH/vínculo e permite alerta de validade.
+- `Motorista`: é o perfil 1:1 de um usuário `OPERADOR`, guarda CNH/RENACH/vínculo e permite alerta de validade.
 - `Veiculo`: guarda placa, RENAVAM, ano e se é próprio ou locado.
 - `Cidade`: origem e destino das viagens.

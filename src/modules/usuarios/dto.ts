@@ -1,4 +1,5 @@
-import { PartialType } from "@nestjs/swagger";
+import { OmitType, PartialType } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   IsBoolean,
   IsEmail,
@@ -6,7 +7,9 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  ValidateNested,
 } from "class-validator";
+import { DadosMotoristaDto } from "../motoristas/dto";
 
 export enum UsuarioRoleDto {
   ADMIN = "ADMIN",
@@ -27,9 +30,16 @@ export class CreateUsuarioDto {
   @IsOptional()
   @IsEnum(UsuarioRoleDto)
   role?: UsuarioRoleDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DadosMotoristaDto)
+  motorista?: DadosMotoristaDto;
 }
 
-export class UpdateUsuarioDto extends PartialType(CreateUsuarioDto) {
+export class UpdateUsuarioDto extends PartialType(
+  OmitType(CreateUsuarioDto, ["motorista", "role"] as const),
+) {
   @IsOptional()
   @IsBoolean()
   ativo?: boolean;

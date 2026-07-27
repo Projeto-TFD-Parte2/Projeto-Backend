@@ -1,16 +1,29 @@
 import {
   PrismaClient,
+  RoleUsuario,
   TipoParticipacao,
   TipoVeiculo,
   TipoVinculoMotorista,
 } from "@prisma/client";
+import { randomBytes, scryptSync } from "crypto";
 const prisma = new PrismaClient();
+
+function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `scrypt:${salt}:${hash}`;
+}
 
 async function main() {
   const cajazeiras = await prisma.cidade.upsert({
     where: { nome_uf: { nome: "Cajazeiras", uf: "PB" } },
     update: {},
     create: { nome: "Cajazeiras", uf: "PB" },
+  });
+  const marizopolis = await prisma.cidade.upsert({
+    where: { nome_uf: { nome: "Marizópolis", uf: "PB" } },
+    update: {},
+    create: { nome: "Marizópolis", uf: "PB" },
   });
   const joaoPessoa = await prisma.cidade.upsert({
     where: { nome_uf: { nome: "João Pessoa", uf: "PB" } },
@@ -30,10 +43,22 @@ async function main() {
     },
   });
 
-  const motorista = await prisma.motorista.upsert({
-    where: { cpf: "11122233344" },
+  const usuarioMotorista = await prisma.usuario.upsert({
+    where: { email: "jose.motorista@local.com" },
     update: {},
     create: {
+      nome: "Jose da Silva",
+      email: "jose.motorista@local.com",
+      senhaHash: hashPassword("motorista123"),
+      role: RoleUsuario.OPERADOR,
+    },
+  });
+
+  const motorista = await prisma.motorista.upsert({
+    where: { cpf: "11122233344" },
+    update: { usuarioId: usuarioMotorista.id, nome: usuarioMotorista.nome },
+    create: {
+      usuarioId: usuarioMotorista.id,
       nome: "José da Silva",
       cpf: "11122233344",
       endereco: "Rua Central, 100",
@@ -73,7 +98,7 @@ async function main() {
     data: {
       veiculoId: veiculo.id,
       motoristaId: motorista.id,
-      cidadeOrigemId: cajazeiras.id,
+      cidadeOrigemId: marizopolis.id,
       cidadeDestinoId: joaoPessoa.id,
       dataSaida: new Date("2026-06-20T05:30:00.000Z"),
       observacao: "Consulta especializada",

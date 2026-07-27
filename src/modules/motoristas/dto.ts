@@ -1,10 +1,8 @@
 import { ApiProperty, PartialType } from "@nestjs/swagger";
 import { TipoVinculoMotorista } from "@prisma/client";
-import { Type } from "class-transformer";
-import { IsDateString, IsEnum, IsString } from "class-validator";
+import { IsDateString, IsEnum, IsInt, IsString } from "class-validator";
 
-export class CreateMotoristaDto {
-  @IsString() nome: string;
+export class DadosMotoristaDto {
   @IsString() cpf: string;
   @IsString() endereco: string;
   @IsString() renach: string;
@@ -14,4 +12,13 @@ export class CreateMotoristaDto {
   @IsEnum(TipoVinculoMotorista)
   tipoVinculo: TipoVinculoMotorista;
 }
-export class UpdateMotoristaDto extends PartialType(CreateMotoristaDto) {}
+
+export class CreateMotoristaDto extends DadosMotoristaDto {
+  @IsInt() usuarioId: number;
+}
+
+export class UpdateMotoristaDto extends PartialType(DadosMotoristaDto) {}
+
+export class VincularMotoristaUsuarioDto {
+  @IsInt() usuarioId: number;
+}

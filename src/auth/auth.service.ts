@@ -4,6 +4,16 @@ import { JwtService } from "./jwt.service";
 import { PasswordService } from "./password.service";
 import { LoginDto } from "./dto";
 
+const motoristaSelect = {
+  id: true,
+  cpf: true,
+  endereco: true,
+  renach: true,
+  validadeHabilitacao: true,
+  tipoHabilitacao: true,
+  tipoVinculo: true,
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -32,9 +42,30 @@ export class AuthService {
     return this.createLoginResponse(usuario);
   }
 
+  async me(usuarioId: number) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        role: true,
+        ativo: true,
+        motorista: { select: motoristaSelect },
+      },
+    });
+
+    if (!usuario) {
+      throw new UnauthorizedException("Credenciais invalidas");
+    }
+
+    return usuario;
+  }
+
   private async validateCredentials(dto: LoginDto) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { email: dto.email.toLowerCase() },
+      include: { motorista: { select: motoristaSelect } },
     });
 
     if (!usuario || !usuario.ativo) {
@@ -71,6 +102,7 @@ export class AuthService {
         nome: usuario.nome,
         email: usuario.email,
         role: usuario.role,
+        motorista: usuario.motorista,
       },
     };
   }

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -15,11 +16,28 @@ const includeCompleto = {
   pessoas: { include: { pessoa: true } },
 };
 
+const CIDADE_ORIGEM_PADRAO = {
+  nome: "Marizópolis",
+  uf: "PB",
+};
+
 @Injectable()
 export class ViagensService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateViagemDto) {
+  async create(dto: CreateViagemDto, usuarioId: number) {
+    const motorista = await this.prisma.motorista.findUnique({
+      where: { usuarioId },
+      select: { id: true },
+    });
+    if (!motorista) {
+      throw new ForbiddenException(
+        "O usuario autenticado nao possui um motorista vinculado.",
+      );
+    }
+
+    const cidadeOrigem = await this.garantirCidadeOrigemPadrao();
+
     const saida = new Date(dto.dataSaida);
     const entrada = dto.dataEntrada ? new Date(dto.dataEntrada) : undefined;
     if (entrada && entrada < saida)
@@ -29,8 +47,8 @@ export class ViagensService {
     return this.prisma.viagem.create({
       data: {
         veiculoId: dto.veiculoId,
-        motoristaId: dto.motoristaId,
-        cidadeOrigemId: dto.cidadeOrigemId,
+        motoristaId: motorista.id,
+        cidadeOrigemId: cidadeOrigem.id,
         cidadeDestinoId: dto.cidadeDestinoId,
         dataSaida: saida,
         dataEntrada: entrada,
@@ -67,6 +85,7 @@ export class ViagensService {
 
   async update(id: number, dto: UpdateViagemDto) {
     await this.findOne(id);
+    const cidadeOrigem = await this.garantirCidadeOrigemPadrao();
     const saida = dto.dataSaida ? new Date(dto.dataSaida) : undefined;
     const entrada = dto.dataEntrada ? new Date(dto.dataEntrada) : undefined;
     if (saida && entrada && entrada < saida)
@@ -81,8 +100,7 @@ export class ViagensService {
         where: { id },
         data: {
           veiculoId: dto.veiculoId,
-          motoristaId: dto.motoristaId,
-          cidadeOrigemId: dto.cidadeOrigemId,
+          cidadeOrigemId: cidadeOrigem.id,
           cidadeDestinoId: dto.cidadeDestinoId,
           dataSaida: saida,
           dataEntrada: entrada,
@@ -120,6 +138,14 @@ export class ViagensService {
       where: { veiculoId },
       include: includeCompleto,
       orderBy: { dataSaida: "desc" },
+    });
+  }
+
+  private garantirCidadeOrigemPadrao() {
+    return this.prisma.cidade.upsert({
+      where: { nome_uf: CIDADE_ORIGEM_PADRAO },
+      update: {},
+      create: CIDADE_ORIGEM_PADRAO,
     });
   }
 }

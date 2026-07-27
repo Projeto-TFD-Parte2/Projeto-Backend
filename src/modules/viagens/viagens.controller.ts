@@ -10,6 +10,9 @@ import {
   Query,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
+import { AuthenticatedUser } from "../../auth/auth.types";
+import { CurrentUser } from "../../auth/current-user.decorator";
+import { Roles } from "../../auth/roles.decorator";
 import { PaginationDto } from "../../common/pagination.dto";
 import { CreateViagemDto, UpdateViagemDto } from "./dto";
 import { ViagensService } from "./viagens.service";
@@ -17,8 +20,10 @@ import { ViagensService } from "./viagens.service";
 @Controller("viagens")
 export class ViagensController {
   constructor(private readonly service: ViagensService) {}
-  @Post() create(@Body() dto: CreateViagemDto) {
-    return this.service.create(dto);
+  @Roles("OPERADOR")
+  @Post()
+  create(@Body() dto: CreateViagemDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.create(dto, user.id);
   }
   @Get() findAll(@Query() query: PaginationDto) {
     return this.service.findAll(query);

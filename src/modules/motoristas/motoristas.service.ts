@@ -1,14 +1,35 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PaginationDto } from "../../common/pagination.dto";
-import { CreateMotoristaDto, UpdateMotoristaDto } from "./dto";
+import {
+  CreateMotoristaDto,
+  UpdateMotoristaDto,
+  VincularMotoristaUsuarioDto,
+} from "./dto";
 
 @Injectable()
 export class MotoristasService {
   constructor(private prisma: PrismaService) {}
-  create(dto: CreateMotoristaDto) {
+
+  async create(dto: CreateMotoristaDto) {
+    const usuario = await this.buscarOperadorDisponivel(dto.usuarioId);
+
     return this.prisma.motorista.create({
-      data: { ...dto, validadeHabilitacao: new Date(dto.validadeHabilitacao) },
+      data: {
+        nome: usuario.nome,
+        cpf: dto.cpf,
+        endereco: dto.endereco,
+        renach: dto.renach,
+        validadeHabilitacao: new Date(dto.validadeHabilitacao),
+        tipoHabilitacao: dto.tipoHabilitacao,
+        tipoVinculo: dto.tipoVinculo,
+        usuarioId: usuario.id,
+      },
     });
   }
   findAll({ page, limit }: PaginationDto) {
@@ -36,8 +57,28 @@ export class MotoristasService {
     });
   }
   async remove(id: number) {
-    await this.findOne(id);
+    const motorista = await this.findOne(id);
+    if (motorista.usuarioId) {
+      throw new BadRequestException(
+        "Nao e permitido remover o motorista vinculado a um usuario operador.",
+      );
+    }
     return this.prisma.motorista.delete({ where: { id } });
+  }
+
+  async vincularUsuario(id: number, dto: VincularMotoristaUsuarioDto) {
+    const motorista = await this.findOne(id);
+    if (motorista.usuarioId) {
+      throw new ConflictException(
+        "Este motorista ja esta vinculado a um usuario.",
+      );
+    }
+
+    const usuario = await this.buscarOperadorDisponivel(dto.usuarioId);
+    return this.prisma.motorista.update({
+      where: { id },
+      data: { usuarioId: usuario.id, nome: usuario.nome },
+    });
   }
   habilitacoesVencendo(dias = 30) {
     const limite = new Date();
@@ -46,5 +87,31 @@ export class MotoristasService {
       where: { validadeHabilitacao: { lte: limite } },
       orderBy: { validadeHabilitacao: "asc" },
     });
+  }
+
+  private async buscarOperadorDisponivel(usuarioId: number) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: {
+        id: true,
+        nome: true,
+        role: true,
+        motorista: { select: { id: true } },
+      },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException("Usuario nao encontrado");
+    }
+    if (usuario.role !== "OPERADOR") {
+      throw new BadRequestException("O usuario precisa ter a role OPERADOR.");
+    }
+    if (usuario.motorista) {
+      throw new ConflictException(
+        "O usuario ja possui um motorista vinculado.",
+      );
+    }
+
+    return usuario;
   }
 }

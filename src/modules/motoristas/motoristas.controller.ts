@@ -9,16 +9,24 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { Roles } from "../../auth/roles.decorator";
 import { PaginationDto } from "../../common/pagination.dto";
-import { CreateMotoristaDto, UpdateMotoristaDto } from "./dto";
+import {
+  CreateMotoristaDto,
+  UpdateMotoristaDto,
+  VincularMotoristaUsuarioDto,
+} from "./dto";
 import { MotoristasService } from "./motoristas.service";
 
+@ApiBearerAuth()
 @ApiTags("Motoristas")
 @Controller("motoristas")
 export class MotoristasController {
   constructor(private readonly service: MotoristasService) {}
-  @Post() create(@Body() dto: CreateMotoristaDto) {
+  @Roles("ADMIN")
+  @Post()
+  create(@Body() dto: CreateMotoristaDto) {
     return this.service.create(dto);
   }
   @Get() findAll(@Query() query: PaginationDto) {
@@ -32,13 +40,25 @@ export class MotoristasController {
   @Get(":id") findOne(@Param("id", ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
-  @Patch(":id") update(
+  @Roles("ADMIN")
+  @Patch(":id")
+  update(
     @Param("id", ParseIntPipe) id: number,
     @Body() dto: UpdateMotoristaDto,
   ) {
     return this.service.update(id, dto);
   }
-  @Delete(":id") remove(@Param("id", ParseIntPipe) id: number) {
+  @Roles("ADMIN")
+  @Patch(":id/usuario")
+  vincularUsuario(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: VincularMotoristaUsuarioDto,
+  ) {
+    return this.service.vincularUsuario(id, dto);
+  }
+  @Roles("ADMIN")
+  @Delete(":id")
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.service.remove(id);
   }
 }

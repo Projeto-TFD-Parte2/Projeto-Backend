@@ -26,6 +26,6 @@ export class AuthController {
   @ApiBearerAuth()
   @Get("me")
   me(@CurrentUser() user: AuthenticatedUser) {
-    return user;
+    return this.authService.me(user.id);
   }
 }
