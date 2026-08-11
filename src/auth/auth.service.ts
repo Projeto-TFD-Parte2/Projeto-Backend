@@ -63,8 +63,19 @@ export class AuthService {
   }
 
   private async validateCredentials(dto: LoginDto) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { email: dto.email.toLowerCase() },
+    const credential = this.getLoginCredential(dto);
+    const usuario = await this.prisma.usuario.findFirst({
+      where: this.isEmailCredential(credential)
+        ? { email: credential.toLowerCase() }
+        : {
+            motorista: {
+              is: {
+                cpf: {
+                  in: this.getCpfSearchValues(credential),
+                },
+              },
+            },
+          },
       include: { motorista: { select: motoristaSelect } },
     });
 
@@ -82,6 +93,25 @@ export class AuthService {
     }
 
     return usuario;
+  }
+
+  private getLoginCredential(dto: LoginDto) {
+    const credential = dto.login ?? dto.email ?? dto.cpf;
+
+    if (!credential?.trim()) {
+      throw new UnauthorizedException("Credenciais invalidas");
+    }
+
+    return credential.trim();
+  }
+
+  private isEmailCredential(credential: string) {
+    return credential.includes("@");
+  }
+
+  private getCpfSearchValues(cpf: string) {
+    const onlyDigits = cpf.replace(/\D/g, "");
+    return Array.from(new Set([cpf, onlyDigits].filter(Boolean)));
   }
 
   private createLoginResponse(

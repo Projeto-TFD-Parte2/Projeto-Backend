@@ -53,10 +53,14 @@ Corpo:
 
 ```json
 {
-  "email": "admin@local.com",
+  "login": "admin@local.com",
   "password": "admin123"
 }
 ```
+
+O campo `login` aceita email ou CPF. O CPF funciona para usuarios `OPERADOR`
+que possuem cadastro de motorista vinculado. Por compatibilidade, a API tambem
+aceita os campos antigos `email` ou `cpf` no lugar de `login`.
 
 Crie o admin inicial antes do primeiro login:
 
@@ -134,6 +138,25 @@ Nao exigem token:
 | ------ | ----------------------- | ------------------------------------------ | -------------------------------------- |
 | `POST` | `/api/auth/login`       | Publico, somente credenciais de `OPERADOR` | Login do aplicativo operacional        |
 | `POST` | `/api/auth/admin/login` | Publico, somente credenciais de `ADMIN`    | Login exclusivo do site administrativo |
+
+Nos dois endpoints de login, envie:
+
+```json
+{
+  "login": "email@exemplo.com ou 12345678901",
+  "password": "senha-do-usuario"
+}
+```
+
+Tambem continuam aceitos os formatos abaixo:
+
+```json
+{ "email": "email@exemplo.com", "password": "senha-do-usuario" }
+```
+
+```json
+{ "cpf": "12345678901", "password": "senha-do-usuario" }
+```
 
 O endpoint `/api/auth/admin/login` retorna `401 Unauthorized` quando as
 credenciais pertencem a um usuario que nao possui a role `ADMIN`.
