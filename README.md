@@ -268,6 +268,34 @@ DELETE /api/cidades/:id
 
 ### Viagens
 
+Atualizacao: a cidade de origem nao e mais fixa. Ao criar ou editar uma viagem,
+envie `cidadeOrigemId` no corpo da requisicao para o usuario escolher a origem.
+
+`GET /api/viagens` aceita filtros opcionais por query string:
+
+| Parametro         | Descricao                                       |
+| ----------------- | ----------------------------------------------- |
+| `motoristaId`     | Traz viagens de um motorista especifico         |
+| `cidadeDestinoId` | Traz viagens para uma cidade destino especifica |
+| `passageiroId`    | Traz viagens em que uma pessoa participou       |
+| `pessoaId`        | Alias de `passageiroId`                         |
+| `veiculoId`       | Traz viagens de um veiculo especifico           |
+| `dataInicio`      | Data inicial de saida da viagem, inclusiva      |
+| `dataFim`         | Data final de saida da viagem, inclusiva        |
+| `page`            | Pagina da consulta                              |
+| `limit`           | Itens por pagina                                |
+
+Exemplos:
+
+```text
+GET /api/viagens?motoristaId=1
+GET /api/viagens?cidadeDestinoId=2
+GET /api/viagens?passageiroId=3
+GET /api/viagens?veiculoId=1
+GET /api/viagens?dataInicio=2026-05-01&dataFim=2026-05-31
+GET /api/viagens?motoristaId=1&cidadeDestinoId=2&veiculoId=1&dataInicio=2026-05-01&dataFim=2026-05-31
+```
+
 ```text
 POST   /api/viagens
 GET    /api/viagens
@@ -280,8 +308,7 @@ DELETE /api/viagens/:id
 
 `POST /api/viagens` é exclusivo do operador. O motorista é identificado pelo
 token do usuário autenticado; portanto, o corpo da requisição não recebe
-`motoristaId`. A cidade de origem é sempre **Marizópolis/PB** e também não é
-enviada no corpo da requisição.
+`motoristaId`.
 
 ## Cadastro do operador e motorista
 
@@ -335,6 +362,7 @@ a quantidade de veículos distintos utilizados nesse intervalo.
 ```json
 {
   "veiculoId": 1,
+  "cidadeOrigemId": 1,
   "cidadeDestinoId": 2,
   "dataSaida": "2026-06-20T05:30:00.000Z",
   "dataEntrada": "2026-06-20T21:00:00.000Z",

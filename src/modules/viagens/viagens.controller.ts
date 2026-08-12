@@ -13,8 +13,7 @@ import { ApiTags } from "@nestjs/swagger";
 import { AuthenticatedUser } from "../../auth/auth.types";
 import { CurrentUser } from "../../auth/current-user.decorator";
 import { Roles } from "../../auth/roles.decorator";
-import { PaginationDto } from "../../common/pagination.dto";
-import { CreateViagemDto, UpdateViagemDto } from "./dto";
+import { CreateViagemDto, FindViagensDto, UpdateViagemDto } from "./dto";
 import { ViagensService } from "./viagens.service";
 @ApiTags("Viagens")
 @Controller("viagens")
@@ -25,7 +24,7 @@ export class ViagensController {
   create(@Body() dto: CreateViagemDto, @CurrentUser() user: AuthenticatedUser) {
     return this.service.create(dto, user.id);
   }
-  @Get() findAll(@Query() query: PaginationDto) {
+  @Get() findAll(@Query() query: FindViagensDto) {
     return this.service.findAll(query);
   }
   @Get("motorista/:motoristaId") porMotorista(
