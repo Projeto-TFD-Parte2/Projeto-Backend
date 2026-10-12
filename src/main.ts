@@ -1,4 +1,4 @@
-import { ValidationPipe } from "@nestjs/common";
+import { Logger, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
@@ -37,9 +37,16 @@ function getAllowedOrigins() {
 }
 
 async function bootstrap() {
+  const logger = new Logger("Bootstrap");
   requireEnvironment();
 
-  const app = await NestFactory.create(AppModule);
+  const isProduction = process.env.NODE_ENV === "production";
+  const app = await NestFactory.create(AppModule, {
+    logger: isProduction
+      ? ["log", "warn", "error"]
+      : ["log", "warn", "error", "debug", "verbose"],
+  });
+
   app.setGlobalPrefix("api");
   app.use(helmet());
   app.enableCors({
@@ -52,10 +59,11 @@ async function bootstrap() {
         return;
       }
 
+      logger.warn(`Requisição bloqueada por CORS da origem: ${origin}`);
       callback(new Error("Origin not allowed by CORS"));
     },
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   });
   app.useGlobalPipes(
@@ -74,8 +82,9 @@ async function bootstrap() {
     .setVersion("1.0.0")
     .addBearerAuth()
     .build();
+
   if (
-    process.env.NODE_ENV !== "production" ||
+    !isProduction ||
     process.env.ENABLE_SWAGGER === "true"
   ) {
     const document = SwaggerModule.createDocument(app, config);
@@ -83,6 +92,13 @@ async function bootstrap() {
     SwaggerModule.setup("docs", app, document);
   }
 
-  await app.listen(process.env.PORT ? Number(process.env.PORT) : 3000);
+  const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+  await app.listen(port);
+
+  logger.log(`Aplicação iniciada com sucesso [ambiente: ${process.env.NODE_ENV || "development"}]`);
+  logger.log(`API ouvindo na porta ${port}: http://localhost:${port}/api`);
+  if (!isProduction || process.env.ENABLE_SWAGGER === "true") {
+    logger.log(`Documentação Swagger disponível em: http://localhost:${port}/docs`);
+  }
 }
 bootstrap();

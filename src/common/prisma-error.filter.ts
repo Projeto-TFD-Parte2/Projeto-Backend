@@ -3,14 +3,20 @@ import {
   Catch,
   ConflictException,
   ExceptionFilter,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaErrorFilter implements ExceptionFilter {
+  private readonly logger = new Logger("PrismaErrorFilter");
+
   catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse();
+    this.logger.warn(
+      `Prisma error [${exception.code}]: ${exception.message}`,
+    );
 
     if (exception.code === "P2002") {
       throw new ConflictException(this.getUniqueConstraintMessage(exception));

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { JwtService } from "./jwt.service";
 import { PasswordService } from "./password.service";
@@ -16,6 +16,8 @@ const motoristaSelect = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -26,9 +28,15 @@ export class AuthService {
     const usuario = await this.validateCredentials(dto);
 
     if (usuario.role !== "OPERADOR") {
+      this.logger.warn(
+        `Acesso negado: Usuário ${usuario.email} tentou login de operador, mas possui perfil ${usuario.role}`,
+      );
       throw new UnauthorizedException("Credenciais invalidas");
     }
 
+    this.logger.log(
+      `Operador autenticado com sucesso: ${usuario.email} (ID: ${usuario.id})`,
+    );
     return this.createLoginResponse(usuario);
   }
 
@@ -36,9 +44,15 @@ export class AuthService {
     const usuario = await this.validateCredentials(dto);
 
     if (usuario.role !== "ADMIN") {
+      this.logger.warn(
+        `Acesso negado: Usuário ${usuario.email} tentou login de admin, mas possui perfil ${usuario.role}`,
+      );
       throw new UnauthorizedException("Credenciais invalidas");
     }
 
+    this.logger.log(
+      `Administrador autenticado com sucesso: ${usuario.email} (ID: ${usuario.id})`,
+    );
     return this.createLoginResponse(usuario);
   }
 
@@ -79,7 +93,13 @@ export class AuthService {
       include: { motorista: { select: motoristaSelect } },
     });
 
-    if (!usuario || !usuario.ativo) {
+    if (!usuario) {
+      this.logger.warn(`Tentativa de login com usuário inexistente: ${credential}`);
+      throw new UnauthorizedException("Credenciais invalidas");
+    }
+
+    if (!usuario.ativo) {
+      this.logger.warn(`Tentativa de login com usuário inativo: ${usuario.email} (ID: ${usuario.id})`);
       throw new UnauthorizedException("Credenciais invalidas");
     }
 
@@ -89,6 +109,7 @@ export class AuthService {
     );
 
     if (!validPassword) {
+      this.logger.warn(`Tentativa de login com senha incorreta para o usuário: ${usuario.email}`);
       throw new UnauthorizedException("Credenciais invalidas");
     }
 

@@ -1,6 +1,6 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { AuthModule } from "./auth/auth.module";
 import { JwtAuthGuard } from "./auth/jwt-auth.guard";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -12,6 +12,8 @@ import { ViagensModule } from "./modules/viagens/viagens.module";
 import { UsuariosModule } from "./modules/usuarios/usuarios.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { HealthController } from "./health/health.controller";
+import { HttpLoggerMiddleware } from "./common/middleware/http-logger.middleware";
+import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 
 @Module({
   imports: [
@@ -32,6 +34,14 @@ import { HealthController } from "./health/health.controller";
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(HttpLoggerMiddleware).forRoutes("*");
+  }
+}
