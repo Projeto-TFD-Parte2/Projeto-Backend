@@ -21,15 +21,21 @@ export class ViagensService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateViagemDto, usuarioId: number) {
-    const motorista = await this.prisma.motorista.findUnique({
-      where: { usuarioId },
-      select: { id: true },
-    });
+    let motoristaId = dto.motoristaId;
 
-    if (!motorista) {
-      throw new ForbiddenException(
-        "O usuario autenticado nao possui um motorista vinculado.",
-      );
+    if (!motoristaId) {
+      const motorista = await this.prisma.motorista.findUnique({
+        where: { usuarioId },
+        select: { id: true },
+      });
+
+      if (!motorista) {
+        throw new ForbiddenException(
+          "O usuario autenticado nao possui um motorista vinculado.",
+        );
+      }
+
+      motoristaId = motorista.id;
     }
 
     const saida = new Date(dto.dataSaida);
@@ -44,7 +50,7 @@ export class ViagensService {
     return this.prisma.viagem.create({
       data: {
         veiculoId: dto.veiculoId,
-        motoristaId: motorista.id,
+        motoristaId,
         cidadeOrigemId: dto.cidadeOrigemId,
         cidadeDestinoId: dto.cidadeDestinoId,
         dataSaida: saida,
@@ -108,6 +114,7 @@ export class ViagensService {
         where: { id },
         data: {
           veiculoId: dto.veiculoId,
+          motoristaId: dto.motoristaId,
           cidadeOrigemId: dto.cidadeOrigemId,
           cidadeDestinoId: dto.cidadeDestinoId,
           dataSaida: saida,

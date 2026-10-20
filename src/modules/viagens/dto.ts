@@ -23,6 +23,10 @@ export class ParticipanteViagemDto {
 
 export class CreateViagemDto {
   @IsInt() veiculoId: number;
+  @ApiPropertyOptional({ example: 1, description: "ID do motorista responsavel pela viagem." })
+  @IsOptional()
+  @IsInt()
+  motoristaId?: number;
   @IsInt() cidadeOrigemId: number;
   @IsInt() cidadeDestinoId: number;
   @IsDateString() dataSaida: string;
