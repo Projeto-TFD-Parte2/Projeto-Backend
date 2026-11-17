@@ -49,6 +49,7 @@ model Veiculo {
   ano       Int
   renavam   String      @unique @db.VarChar(20)
   tipo      TipoVeiculo @map("tipo_veiculo")
+  ativo     Boolean     @default(true)
   createdAt DateTime    @default(now()) @map("created_at")
   updatedAt DateTime    @updatedAt @map("updated_at")
   viagens   Viagem[]
@@ -66,6 +67,7 @@ model Motorista {
   validadeHabilitacao   DateTime             @map("validade_habilitacao") @db.Date
   tipoHabilitacao       String               @map("tipo_habilitacao") @db.VarChar(5)
   tipoVinculo           TipoVinculoMotorista @map("tipo_vinculo")
+  ativo                 Boolean              @default(true)
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
   viagens               Viagem[]
@@ -78,6 +80,7 @@ model Cidade {
   id              Int      @id @default(autoincrement()) @map("id_cidade")
   nome            String   @db.VarChar(120)
   uf              String   @db.Char(2)
+  ativo           Boolean  @default(true)
   viagensOrigem   Viagem[] @relation("CidadeOrigem")
   viagensDestino  Viagem[] @relation("CidadeDestino")
 
@@ -94,6 +97,7 @@ model Pessoa {
   telefone       String?        @db.VarChar(20)
   endereco       String?        @db.VarChar(255)
   municipio      String?        @db.VarChar(120)
+  ativo          Boolean        @default(true)
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
   participacoes  ViagemPessoa[]
@@ -110,6 +114,7 @@ model Viagem {
   dataSaida       DateTime       @map("data_saida")
   dataEntrada     DateTime?      @map("data_entrada")
   observacao      String?        @db.Text
+  ativo           Boolean        @default(true)
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
