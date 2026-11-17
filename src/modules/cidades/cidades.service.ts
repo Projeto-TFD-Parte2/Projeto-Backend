@@ -14,6 +14,7 @@ export class CidadesService {
     return this.prisma.cidade.findMany({
       skip: (page - 1) * limit,
       take: limit,
+      where: { ativo: true },
       orderBy: [{ uf: "asc" }, { nome: "asc" }],
     });
   }

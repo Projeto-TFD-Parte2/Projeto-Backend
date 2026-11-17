@@ -13,6 +13,7 @@ export class VeiculosService {
     return this.prisma.veiculo.findMany({
       skip: (page - 1) * limit,
       take: limit,
+      where: { ativo: true },
       orderBy: { nome: "asc" },
     });
   }

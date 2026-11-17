@@ -20,6 +20,7 @@ export class PessoasService {
     return this.prisma.pessoa.findMany({
       skip: (page - 1) * limit,
       take: limit,
+      where: { ativo: true },
       orderBy: { nome: "asc" },
     });
   }
