@@ -4,6 +4,7 @@ import { Type } from "class-transformer";
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -38,9 +39,19 @@ export class CreateViagemDto {
   @Type(() => ParticipanteViagemDto)
   pessoas: ParticipanteViagemDto[];
 }
-export class UpdateViagemDto extends PartialType(CreateViagemDto) {}
+export class UpdateViagemDto extends PartialType(CreateViagemDto) {
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  ativo?: boolean;
+}
 
 export class FindViagensDto extends PaginationDto {
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  ativo?: boolean;
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @Type(() => Number)

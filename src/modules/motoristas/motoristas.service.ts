@@ -45,25 +45,45 @@ export class MotoristasService {
     return item;
   }
   async update(id: number, dto: UpdateMotoristaDto) {
-    await this.findOne(id);
-    return this.prisma.motorista.update({
-      where: { id },
-      data: {
-        ...dto,
-        validadeHabilitacao: dto.validadeHabilitacao
-          ? new Date(dto.validadeHabilitacao)
-          : undefined,
-      },
+    const motorista = await this.findOne(id);
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.motorista.update({
+        where: { id },
+        data: {
+          ...dto,
+          validadeHabilitacao: dto.validadeHabilitacao
+            ? new Date(dto.validadeHabilitacao)
+            : undefined,
+        },
+      });
+
+      if (dto.ativo !== undefined && motorista.usuarioId) {
+        await tx.usuario.update({
+          where: { id: motorista.usuarioId },
+          data: { ativo: dto.ativo },
+        });
+      }
+
+      return updated;
     });
   }
   async remove(id: number) {
     const motorista = await this.findOne(id);
-    if (motorista.usuarioId) {
-      throw new BadRequestException(
-        "Nao e permitido remover o motorista vinculado a um usuario operador.",
-      );
-    }
-    return this.prisma.motorista.delete({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.motorista.update({
+        where: { id },
+        data: { ativo: false },
+      });
+
+      if (motorista.usuarioId) {
+        await tx.usuario.update({
+          where: { id: motorista.usuarioId },
+          data: { ativo: false },
+        });
+      }
+
+      return updated;
+    });
   }
 
   async vincularUsuario(id: number, dto: VincularMotoristaUsuarioDto) {
@@ -84,7 +104,10 @@ export class MotoristasService {
     const limite = new Date();
     limite.setDate(limite.getDate() + dias);
     return this.prisma.motorista.findMany({
-      where: { validadeHabilitacao: { lte: limite } },
+      where: {
+        ativo: true,
+        validadeHabilitacao: { lte: limite },
+      },
       orderBy: { validadeHabilitacao: "asc" },
     });
   }

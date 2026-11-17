@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -49,5 +50,10 @@ export class UsuariosController {
     @Body() dto: UpdateUsuarioSenhaDto,
   ) {
     return this.service.updateSenha(id, dto);
+  }
+
+  @Delete(":id")
+  remove(@Param("id", ParseIntPipe) id: number) {
+    return this.service.remove(id);
   }
 }

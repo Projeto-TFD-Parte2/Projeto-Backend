@@ -27,6 +27,9 @@ export class VeiculosService {
   }
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.veiculo.delete({ where: { id } });
+    return this.prisma.veiculo.update({
+      where: { id },
+      data: { ativo: false },
+    });
   }
 }

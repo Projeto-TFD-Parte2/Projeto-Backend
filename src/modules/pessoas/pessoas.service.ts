@@ -59,6 +59,9 @@ export class PessoasService {
   }
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.pessoa.delete({ where: { id } });
+    return this.prisma.pessoa.update({
+      where: { id },
+      data: { ativo: false },
+    });
   }
 }

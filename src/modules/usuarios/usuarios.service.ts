@@ -120,8 +120,13 @@ export class UsuariosService {
           ? this.passwordService.hash(dto.password)
           : undefined,
         motorista:
-          dto.nome && usuario.motorista
-            ? { update: { nome: dto.nome } }
+          usuario.motorista && (dto.nome || dto.ativo !== undefined)
+            ? {
+                update: {
+                  ...(dto.nome ? { nome: dto.nome } : {}),
+                  ...(dto.ativo !== undefined ? { ativo: dto.ativo } : {}),
+                },
+              }
             : undefined,
       },
       select: usuarioSelect,
@@ -137,6 +142,26 @@ export class UsuariosService {
         senhaHash: this.passwordService.hash(dto.password),
       },
       select: usuarioSelect,
+    });
+  }
+
+  async remove(id: number) {
+    const usuario = await this.findOne(id);
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.usuario.update({
+        where: { id },
+        data: { ativo: false },
+        select: usuarioSelect,
+      });
+
+      if (usuario.motorista) {
+        await tx.motorista.update({
+          where: { id: usuario.motorista.id },
+          data: { ativo: false },
+        });
+      }
+
+      return updated;
     });
   }
 }

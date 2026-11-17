@@ -34,6 +34,9 @@ export class CidadesService {
 
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.cidade.delete({ where: { id } });
+    return this.prisma.cidade.update({
+      where: { id },
+      data: { ativo: false },
+    });
   }
 }

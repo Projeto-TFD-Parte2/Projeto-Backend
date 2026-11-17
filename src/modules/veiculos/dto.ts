@@ -1,6 +1,6 @@
-import { ApiProperty, PartialType } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 import { TipoVeiculo } from "@prisma/client";
-import { IsEnum, IsInt, IsString, Length, Max, Min } from "class-validator";
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Length, Max, Min } from "class-validator";
 
 export class CreateVeiculoDto {
   @IsString() nome: string;
@@ -9,4 +9,9 @@ export class CreateVeiculoDto {
   @IsString() renavam: string;
   @ApiProperty({ enum: TipoVeiculo }) @IsEnum(TipoVeiculo) tipo: TipoVeiculo;
 }
-export class UpdateVeiculoDto extends PartialType(CreateVeiculoDto) {}
+export class UpdateVeiculoDto extends PartialType(CreateVeiculoDto) {
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  ativo?: boolean;
+}

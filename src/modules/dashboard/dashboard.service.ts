@@ -20,7 +20,7 @@ export class DashboardService {
     const whereViagens = this.wherePeriodo(periodo);
     const whereMotoristas = this.temPeriodo(periodo)
       ? whereViagens
-      : { dataEntrada: null };
+      : { dataEntrada: null, ativo: true };
     const totalVeiculos = this.temPeriodo(periodo)
       ? this.prisma.viagem
           .findMany({
@@ -29,7 +29,7 @@ export class DashboardService {
             select: { veiculoId: true },
           })
           .then((veiculos) => veiculos.length)
-      : this.prisma.veiculo.count();
+      : this.prisma.veiculo.count({ where: { ativo: true } });
     const [
       totalViagens,
       totalPassageiros,
@@ -95,10 +95,10 @@ export class DashboardService {
     }
 
     if (!inicio && !fim) {
-      return {};
+      return { ativo: true };
     }
 
-    return { dataSaida: { gte: inicio, lte: fim } };
+    return { ativo: true, dataSaida: { gte: inicio, lte: fim } };
   }
 
   private temPeriodo({ dataInicio, dataFim }: DashboardPeriodoDto) {

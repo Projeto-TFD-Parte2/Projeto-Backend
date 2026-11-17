@@ -26,7 +26,7 @@ export class ViagensService {
     if (!motoristaId) {
       const motorista = await this.prisma.motorista.findUnique({
         where: { usuarioId },
-        select: { id: true },
+        select: { id: true, ativo: true },
       });
 
       if (!motorista) {
@@ -35,7 +35,61 @@ export class ViagensService {
         );
       }
 
+      if (!motorista.ativo) {
+        throw new BadRequestException(
+          "O motorista vinculado ao usuario autenticado esta inativo.",
+        );
+      }
+
       motoristaId = motorista.id;
+    } else {
+      const motorista = await this.prisma.motorista.findUnique({
+        where: { id: motoristaId },
+        select: { id: true, ativo: true },
+      });
+
+      if (!motorista) {
+        throw new NotFoundException("Motorista nao encontrado.");
+      }
+
+      if (!motorista.ativo) {
+        throw new BadRequestException("O motorista selecionado esta inativo.");
+      }
+    }
+
+    const veiculo = await this.prisma.veiculo.findUnique({
+      where: { id: dto.veiculoId },
+      select: { id: true, ativo: true },
+    });
+    if (!veiculo) throw new NotFoundException("Veiculo nao encontrado.");
+    if (!veiculo.ativo) throw new BadRequestException("O veiculo selecionado esta inativo.");
+
+    const [origem, destino] = await Promise.all([
+      this.prisma.cidade.findUnique({
+        where: { id: dto.cidadeOrigemId },
+        select: { id: true, ativo: true },
+      }),
+      this.prisma.cidade.findUnique({
+        where: { id: dto.cidadeDestinoId },
+        select: { id: true, ativo: true },
+      }),
+    ]);
+    if (!origem || !origem.ativo) {
+      throw new BadRequestException("A cidade de origem selecionada esta inativa ou nao existe.");
+    }
+    if (!destino || !destino.ativo) {
+      throw new BadRequestException("A cidade de destino selecionada esta inativa ou nao existe.");
+    }
+
+    if (dto.pessoas && dto.pessoas.length > 0) {
+      const pessoas = await this.prisma.pessoa.findMany({
+        where: { id: { in: dto.pessoas.map((p) => p.pessoaId) } },
+        select: { id: true, nome: true, ativo: true },
+      });
+      const inativa = pessoas.find((p) => !p.ativo);
+      if (inativa) {
+        throw new BadRequestException(`O passageiro ${inativa.nome} esta inativo.`);
+      }
     }
 
     const saida = new Date(dto.dataSaida);
@@ -105,6 +159,21 @@ export class ViagensService {
       );
     }
 
+    if (dto.motoristaId) {
+      const motorista = await this.prisma.motorista.findUnique({
+        where: { id: dto.motoristaId },
+        select: { id: true, ativo: true },
+      });
+
+      if (!motorista) {
+        throw new NotFoundException("Motorista nao encontrado.");
+      }
+
+      if (!motorista.ativo) {
+        throw new BadRequestException("O motorista selecionado esta inativo.");
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
       if (dto.pessoas) {
         await tx.viagemPessoa.deleteMany({ where: { viagemId: id } });
@@ -120,6 +189,7 @@ export class ViagensService {
           dataSaida: saida,
           dataEntrada: entrada,
           observacao: dto.observacao,
+          ativo: dto.ativo,
           pessoas: dto.pessoas
             ? {
                 create: dto.pessoas.map((p) => ({
@@ -137,12 +207,15 @@ export class ViagensService {
 
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.viagem.delete({ where: { id } });
+    return this.prisma.viagem.update({
+      where: { id },
+      data: { ativo: false },
+    });
   }
 
   porMotorista(motoristaId: number) {
     return this.prisma.viagem.findMany({
-      where: { motoristaId },
+      where: { motoristaId, ativo: true },
       include: includeCompleto,
       orderBy: { dataSaida: "desc" },
     });
@@ -150,7 +223,7 @@ export class ViagensService {
 
   porVeiculo(veiculoId: number) {
     return this.prisma.viagem.findMany({
-      where: { veiculoId },
+      where: { veiculoId, ativo: true },
       include: includeCompleto,
       orderBy: { dataSaida: "desc" },
     });
@@ -168,6 +241,7 @@ export class ViagensService {
     }
 
     return {
+      ativo: query.ativo !== undefined ? query.ativo : true,
       motoristaId: query.motoristaId,
       cidadeDestinoId: query.cidadeDestinoId,
       veiculoId: query.veiculoId,

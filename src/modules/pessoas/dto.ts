@@ -1,5 +1,5 @@
-import { PartialType } from "@nestjs/swagger";
-import { IsDateString, IsOptional, IsString } from "class-validator";
+import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
+import { IsBoolean, IsDateString, IsOptional, IsString } from "class-validator";
 
 export class CreatePessoaDto {
   @IsString() nome: string;
@@ -10,4 +10,9 @@ export class CreatePessoaDto {
   @IsOptional() @IsString() endereco?: string;
   @IsOptional() @IsString() municipio?: string;
 }
-export class UpdatePessoaDto extends PartialType(CreatePessoaDto) {}
+export class UpdatePessoaDto extends PartialType(CreatePessoaDto) {
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  ativo?: boolean;
+}

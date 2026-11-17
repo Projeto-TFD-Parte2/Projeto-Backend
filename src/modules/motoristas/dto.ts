@@ -1,6 +1,6 @@
-import { ApiProperty, PartialType } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 import { TipoVinculoMotorista } from "@prisma/client";
-import { IsDateString, IsEnum, IsInt, IsString } from "class-validator";
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString } from "class-validator";
 
 export class DadosMotoristaDto {
   @IsString() cpf: string;
@@ -17,7 +17,12 @@ export class CreateMotoristaDto extends DadosMotoristaDto {
   @IsInt() usuarioId: number;
 }
 
-export class UpdateMotoristaDto extends PartialType(DadosMotoristaDto) {}
+export class UpdateMotoristaDto extends PartialType(DadosMotoristaDto) {
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  ativo?: boolean;
+}
 
 export class VincularMotoristaUsuarioDto {
   @IsInt() usuarioId: number;
